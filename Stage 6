@@ -1,0 +1,214 @@
+package encryptdecrypt;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
+ 
+public class Main {
+    public static void main(String[] args) throws IOException {
+        String mode = "enc";
+        int key = 0;
+        String data = "";
+        String inputFile = null;
+        String outputFile = null;
+        String algoritm = "shift";
+        Scanner scanner = null;
+        FileWriter writer = null;
+        FileReadAndWrite helper = null;
+        for (int i = 0; i < args.length - 1; i++) {
+            switch (args[i]) {
+                case "-mode":
+                    mode = args[i + 1];
+                    break;
+                case "-key":
+                    key = Integer.parseInt(args[i + 1]);
+                    break;
+                case "-data":
+                    data = args[i + 1];
+                    break;
+                case "-in":
+                    inputFile = args[i + 1];
+                    scanner = new Scanner(new File(inputFile));
+                    break;
+                case "-out":
+                    outputFile = args[i + 1];
+                    writer = new FileWriter(new File(outputFile));
+                    break;
+                case "-alg":
+                    algoritm = args[i + 1];
+            }
+        }
+        if (scanner != null && writer != null) {
+            helper = new FileReadAndWrite(scanner, writer);
+        }
+        Methods solution = MethodsFactory.getInstance(algoritm, data, key, inputFile, outputFile, helper);
+        assert solution != null;
+        solution.solve(mode);
+    }
+}
+ 
+abstract class Methods {
+    protected Scanner scanner;
+    protected FileWriter writer;
+    protected String data;
+    protected String inputFile;
+    protected String outputFile;
+    protected int key;
+    Methods(String data, int key, String inputFile, String outputFile) {
+        this.data = data;
+        this.key = key;
+        this.inputFile = inputFile;
+        this.outputFile = outputFile;
+    }
+    void setHelper(FileReadAndWrite helper) {
+        this.scanner = helper.scanner;
+        this.writer = helper.write;
+    }
+    void solve(String type) throws IOException {
+        if ("enc".equals(type)) {
+            encryption(data, key, inputFile, outputFile);
+        } else {
+            decryption(data, key, inputFile, outputFile);
+        }
+    }
+    abstract void decryption(String data, int key, String inputFile, String outputFile) throws IOException;
+    abstract void encryption(String data, int key, String inputFile, String outputFile) throws IOException;
+}
+ 
+abstract class MethodsFactory {
+    static Methods getInstance(String type, String data, int key, String inputFile, String outputFile, FileReadAndWrite helper) {
+        Methods methods = null;
+        if ("shift".equals(type)) {
+            methods = new Shift(data, key, inputFile, outputFile);
+        } else if ("unicode".equals(type)) {
+            methods = new Unicode(data, key, inputFile, outputFile);
+        }
+        if (helper != null) {
+            assert methods != null;
+            methods.setHelper(helper);
+        }
+        return methods;
+    }
+}
+ 
+class FileReadAndWrite {
+    Scanner scanner;
+    FileWriter write;
+    FileReadAndWrite(Scanner in, FileWriter out) {
+        this.scanner = in;
+        this.write = out;
+    }
+}
+ 
+class Shift extends Methods {
+    Shift(String data, int key, String inputFile, String outputFile) {
+        super(data, key, inputFile, outputFile);
+    }
+    @Override
+    public void decryption(String data, int key, String inputFile, String outputFile) throws IOException {
+        if (inputFile != null) {
+            data = scanner.nextLine();
+            scanner.close();
+        }
+        byte[] messageAscii = data.getBytes(StandardCharsets.US_ASCII);
+        for (int i = 0; i < messageAscii.length; i++) {
+            if (messageAscii[i] <= 122 && messageAscii[i] >= 97) {
+                if (messageAscii[i] - key >= 97) {
+                    messageAscii[i] = (byte) (messageAscii[i] - key);
+                } else {
+                    messageAscii[i] = (byte) (messageAscii[i] - key + 123 - 97);
+                }
+            } else if (messageAscii[i] <= 90 && messageAscii[i] >= 65) {
+                if (messageAscii[i] - key >= 65) {
+                    messageAscii[i] = (byte) (messageAscii[i] + key);
+                } else {
+                    messageAscii[i] = (byte) (messageAscii[i] + key - 91 + 65);
+                }
+            }
+        }
+        StringBuilder decrypted = new StringBuilder();
+        for (byte x : messageAscii) {
+            decrypted.append((char) x);
+        }
+        if (outputFile != null) {
+            writer.write(decrypted.toString());
+            writer.close();
+        } else {
+            System.out.println(decrypted.toString());
+        }
+    }
+    @Override
+    public void encryption(String data, int key, String inputFile, String outputFile) throws IOException {
+        if (inputFile != null) {
+            data = scanner.nextLine();
+            scanner.close();
+        }
+        byte[] messageAscii = data.getBytes(StandardCharsets.US_ASCII);
+        for (int i = 0; i < messageAscii.length; i++) {
+            if (messageAscii[i] <= 122 && messageAscii[i] >= 97) {
+                if (messageAscii[i] + key <= 122) {
+                    messageAscii[i] = (byte) (messageAscii[i] + key);
+                } else {
+                    messageAscii[i] = (byte) (messageAscii[i] + key - 123 + 97);
+                }
+            } else if (messageAscii[i] <= 90 && messageAscii[i] >= 65) {
+                if (messageAscii[i] + key <= 90) {
+                    messageAscii[i] = (byte) (messageAscii[i] + key);
+                } else {
+                    messageAscii[i] = (byte) (messageAscii[i] + key - 91 + 65);
+                }
+            }
+        }
+        StringBuilder encrypted = new StringBuilder();
+        for (byte x : messageAscii) {
+            encrypted.append((char) x);
+        }
+        if (outputFile != null) {
+            writer.write(encrypted.toString());
+            writer.close();
+        } else {
+            System.out.println(encrypted.toString());
+        }
+    }
+ 
+}
+class Unicode extends Methods {
+    Unicode(String data, int key, String inputFile, String outputFile) {
+        super(data, key, inputFile, outputFile);
+    }
+    @Override
+    public void encryption(String data, int key, String inputFile, String outputFile) throws IOException {
+        if (inputFile != null) {
+            data = scanner.nextLine();
+            scanner.close();
+        }
+        StringBuilder sb = new StringBuilder();
+        for (char item : data.toCharArray()) {
+            char shiftItem = (char) (item + key);
+            sb.append(shiftItem);
+        }
+        if (outputFile != null) {
+            writer.write(sb.toString());
+            writer.close();
+        } else {
+            System.out.println(sb.toString());
+        }
+    }
+    @Override
+    public void decryption(String data, int key, String inputFile, String outputFile) throws IOException {
+        if (inputFile != null) {
+            data = scanner.nextLine();
+            scanner.close();
+        }
+        StringBuilder sb = new StringBuilder();
+        for (char item : data.toCharArray()) {
+            char shiftItem = (char) (item - key);
+            sb.append(shiftItem);
+        }
+        if (outputFile != null) {
+            writer.write(sb.toString());
+            writer.close();
+        } else {
+            System.out.println(sb.toString());
+        }
+    }
+}
