@@ -1,4 +1,4 @@
-# hypersskill__EncryptionDecryption
+# hypersskill - EncryptionDecryption
 
 -encrypt messages with a numeric key, using the Caesar cypher;
 -decrypt it as well;
